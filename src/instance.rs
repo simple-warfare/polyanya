@@ -7,15 +7,15 @@ use std::collections::{BinaryHeap, HashSet};
 #[cfg(feature = "stats")]
 use std::time::Instant;
 
-use glam::Vec2;
-use hashbrown::{hash_map::Entry, HashMap};
-
 #[cfg(feature = "detailed-layers")]
 use crate::helpers::EPSILON;
 use crate::{
     helpers::{heuristic, line_intersect_segment, turning_point, Vec2Helper},
     Mesh, Path, SearchNode, PRECISION,
 };
+use glam::Vec2;
+use hashbrown::{hash_map::Entry, HashMap};
+use rayon::prelude::*;
 
 pub(crate) struct Root(Vec2);
 
@@ -185,9 +185,9 @@ impl<'m> SearchInstance<'m> {
             };
             let other_side = start
                 .polygons
-                .iter()
+                .par_iter()
                 .filter(|i| **i != u32::MAX && end.polygons.contains(*i))
-                .find(|poly| *poly != &from.1)
+                .find_any(|poly| *poly != &from.1)
                 .unwrap_or(&u32::MAX);
 
             if search_instance.blocked_layers.contains(&other_side.layer()) {
@@ -283,9 +283,9 @@ impl<'m> SearchInstance<'m> {
                             // look for next fixed point to find the intersection
                             let to = next
                                 .path_with_layers
-                                .iter()
+                                .par_iter()
                                 .skip(index + 1)
-                                .find(|point| point.0 == point.1)
+                                .find_any(|point| point.0 == point.1)
                                 .map(|point| point.0)
                                 .unwrap_or(path_with_layers_end[0].0);
                             if let Some(intersection) = line_intersect_segment(
@@ -369,9 +369,9 @@ impl<'m> SearchInstance<'m> {
                 + self.mesh.layers[node.previous_polygon_layer as usize].offset;
             polygon
                 .vertices
-                .iter()
+                .par_iter()
                 .enumerate()
-                .find(|(_, v)| {
+                .find_any(|(_, v)| {
                     (target_layer.vertices[**v as usize].coords + target_layer.offset)
                         .distance_squared(edge)
                         < 0.001
@@ -380,7 +380,7 @@ impl<'m> SearchInstance<'m> {
                 .unwrap_or_else(|| {
                     let mut distances = polygon
                         .vertices
-                        .iter()
+                        .par_iter()
                         .map(|v| {
                             (target_layer.vertices[*v as usize].coords + target_layer.offset)
                                 .distance_squared(edge)
@@ -707,9 +707,9 @@ impl<'m> SearchInstance<'m> {
 
                 let other_side = start
                     .polygons
-                    .iter()
+                    .par_iter()
                     .filter(|i| **i != u32::MAX && end.polygons.contains(*i))
-                    .find(|poly| poly != &&node.polygon_to)
+                    .find_any(|poly| poly != &&node.polygon_to)
                     .unwrap_or(&u32::MAX);
 
                 #[cfg(debug_assertions)]

@@ -1,9 +1,10 @@
+use rayon::iter::IntoParallelRefIterator;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
 use bvh2d::bvh2d::BVH2d;
 use glam::{vec2, Vec2};
-
+use rayon::prelude::*;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -69,9 +70,9 @@ impl Layer {
     pub fn bake_islands_detection(&mut self) {
         let mut islands = vec![usize::MAX; self.polygons.len()];
         while let Some((root, _)) = islands
-            .iter()
+            .par_iter()
             .enumerate()
-            .find(|(_, island)| **island == usize::MAX)
+            .find_any(|(_, island)| **island == usize::MAX)
         {
             let mut to_visit = Vec::new();
             to_visit.push(root);
@@ -107,7 +108,7 @@ impl Layer {
     pub fn bake_polygon_finder(&mut self) {
         let bounded_polygons = self
             .polygons
-            .iter_mut()
+            .par_iter_mut()
             .map(|polygon| BoundedPolygon {
                 aabb: polygon.vertices.iter().fold(
                     (vec2(f32::MAX, f32::MAX), Vec2::ZERO),

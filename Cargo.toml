@@ -12,7 +12,7 @@ documentation = "https://docs.rs/polyanya"
 categories = ["game-development"]
 
 [features]
-default = ["async"]
+default = ["async", "detailed-layers"]
 stats = []
 verbose = []
 async = []
@@ -31,7 +31,7 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 geo = "0.30.0"
 log = "0.4"
 thiserror = "2"
-
+rayon = "1.10.0"
 # additional dependencies for vendored spade
 robust = "1.1.0"
 num-traits = "0.2"

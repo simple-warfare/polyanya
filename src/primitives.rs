@@ -1,6 +1,7 @@
 use std::ops::RangeInclusive;
 
 use geo::{Area, Coord};
+use rayon::iter::IntoParallelRefIterator;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
@@ -10,7 +11,7 @@ use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
 use crate::layers::Layer;
-
+use rayon::prelude::*;
 /// A point that lies on an edge of a polygon in the navigation mesh.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -66,7 +67,7 @@ impl Polygon {
 
     pub(crate) fn using(nb: usize, data: Vec<isize>) -> Self {
         let (vertices, neighbours) = data.split_at(nb);
-        let vertices = vertices.iter().copied().map(|v| v as u32).collect();
+        let vertices = vertices.par_iter().copied().map(|v| v as u32).collect();
         let neighbours = neighbours.to_vec();
         let mut found_trav = false;
         // Hack to handle case where there are no neighbours in the file. In

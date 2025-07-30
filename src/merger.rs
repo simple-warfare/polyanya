@@ -1,4 +1,5 @@
 use geo::IsConvex;
+use rayon::prelude::*;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
@@ -27,7 +28,7 @@ impl Layer {
         self.unbake();
         let mut area = self
             .polygons
-            .iter()
+            .par_iter()
             .enumerate()
             .map(|(i, poly)| (i, poly.area(self)))
             .collect::<Vec<_>>();
@@ -54,8 +55,8 @@ impl Layer {
                 };
                 let other_side = *start
                     .polygons
-                    .iter()
-                    .find(|i| {
+                    .par_iter()
+                    .find_any(|i| {
                         **i != u32::MAX && **i != *poly_index as u32 && end.polygons.contains(*i)
                     })
                     .unwrap_or(&u32::MAX);
@@ -126,14 +127,15 @@ impl Layer {
         }
         self.polygons.resize_with(kept as usize, || unreachable!());
 
-        for vertex in self.vertices.iter_mut() {
-            for p in vertex.polygons.iter_mut() {
+        self.vertices.par_iter_mut().for_each(|vertex|{
+            vertex.polygons.par_iter_mut().for_each(|p| {
                 if *p != u32::MAX {
                     *p = new_indexes[*p as usize];
                 }
-            }
+            });
+
             vertex.polygons.dedup();
-        }
+        });
         new_indexes.len() != kept as usize
     }
 }
