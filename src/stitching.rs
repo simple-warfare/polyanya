@@ -6,7 +6,7 @@ use crate::{instance::U32Layer, Mesh};
 
 type StitchVertices = Vec<((u8, u8), Vec<(usize, usize)>)>;
 type StitchPoints = Vec<((u8, u8), Vec<Vec2>)>;
-
+use rayon::prelude::*;
 impl Mesh {
     fn stitch_internals(
         &mut self,
@@ -135,32 +135,35 @@ impl Mesh {
     ///
     /// This can be useful when updating the NavMesh and changes are known to be contained in a single layer.
     pub fn remove_stitches_to_layer(&mut self, target_layer: u8) {
-        for (layer_index, layer) in self.layers.iter_mut().enumerate() {
-            for vertex in layer.vertices.iter_mut() {
-                if layer_index as u8 == target_layer {
-                    // target layer, drop all references to other layers
-                    vertex.polygons.retain_mut(|p| {
-                        if *p == u32::MAX {
-                            return true;
-                        }
-                        if p.layer() == layer_index as u8 {
-                            *p = p.polygon();
-                            true
-                        } else {
-                            false
-                        }
-                    })
-                } else {
-                    // other layers, drop all references to target layer
-                    vertex.polygons.retain(|p| {
-                        if *p == u32::MAX {
-                            return true;
-                        }
-                        p.layer() != target_layer
-                    })
-                }
-            }
-        }
+        self.layers
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(layer_index, layer)| {
+                layer.vertices.par_iter_mut().for_each(|vertex| {
+                    if layer_index as u8 == target_layer {
+                        // target layer, drop all references to other layers
+                        vertex.polygons.retain_mut(|p| {
+                            if *p == u32::MAX {
+                                return true;
+                            }
+                            if p.layer() == layer_index as u8 {
+                                *p = p.polygon();
+                                true
+                            } else {
+                                false
+                            }
+                        })
+                    } else {
+                        // other layers, drop all references to target layer
+                        vertex.polygons.retain(|p| {
+                            if *p == u32::MAX {
+                                return true;
+                            }
+                            p.layer() != target_layer
+                        })
+                    }
+                });
+            });
     }
 
     /// Restitch points targeting a specific layer.

@@ -8,7 +8,7 @@ pub use geo::LineString;
 use geo::{self, Contains, Coord, SimplifyVwPreserve};
 use glam::{vec2, Vec2};
 use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation as SpadeTriangulation};
-
+use rayon::prelude::*;
 use crate::{Layer, Mesh, Polygon, Vertex};
 
 #[derive(Clone, Copy, Debug)]
@@ -611,10 +611,12 @@ mod tests {
 mod inflate {
 
     use std::f32::consts::TAU;
+    use rayon::prelude::*;
 
     use geo::{
         BooleanOps, Coord, Distance, Euclidean, Line, LineString, Polygon, SimplifyVwPreserve,
     };
+    use rayon::iter::IntoParallelRefIterator;
 
     fn segment_normal(start: &Coord<f32>, end: &Coord<f32>) -> Option<Coord<f32>> {
         let edge_length = Euclidean.distance(*end, *start);
@@ -646,7 +648,7 @@ mod inflate {
             Polygon::new(
                 self.exterior().clone(),
                 self.interiors()
-                    .iter()
+                    .par_iter()
                     .map(|ls| inflate(ls, distance, arc_segments))
                     .map(|ls| ls.simplify_vw_preserve(&minimum_surface))
                     .collect(),
