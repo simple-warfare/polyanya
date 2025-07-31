@@ -4,12 +4,12 @@ use inflate::Inflate;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
-use crate::{Layer, Mesh, Polygon, Vertex};
 pub use geo::LineString;
 use geo::{self, Contains, Coord, SimplifyVwPreserve};
 use glam::{vec2, Vec2};
-use rayon::prelude::*;
 use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation as SpadeTriangulation};
+use rayon::prelude::*;
+use crate::{Layer, Mesh, Polygon, Vertex};
 
 #[derive(Clone, Copy, Debug)]
 enum AgentRadius {
@@ -610,8 +610,8 @@ mod tests {
 
 mod inflate {
 
-    use rayon::prelude::*;
     use std::f32::consts::TAU;
+    use rayon::prelude::*;
 
     use geo::{
         BooleanOps, Coord, Distance, Euclidean, Line, LineString, Polygon, SimplifyVwPreserve,
