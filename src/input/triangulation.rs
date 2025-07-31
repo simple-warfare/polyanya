@@ -4,12 +4,12 @@ use inflate::Inflate;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
+use crate::{Layer, Mesh, Polygon, Vertex};
 pub use geo::LineString;
 use geo::{self, Contains, Coord, SimplifyVwPreserve};
 use glam::{vec2, Vec2};
-use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation as SpadeTriangulation};
 use rayon::prelude::*;
-use crate::{Layer, Mesh, Polygon, Vertex};
+use spade::{ConstrainedDelaunayTriangulation, Point2, Triangulation as SpadeTriangulation};
 
 #[derive(Clone, Copy, Debug)]
 enum AgentRadius {
@@ -153,7 +153,7 @@ impl Triangulation {
     /// Add obstacles delimited by the list of points on their edges.
     pub fn add_obstacles(
         &mut self,
-        obstacles: impl IntoIterator<Item = impl IntoIterator<Item = Vec2>>,
+        obstacles: impl IntoParallelIterator<Item = impl IntoIterator<Item = Vec2>>,
     ) {
         let (exterior, interiors) = std::mem::replace(
             &mut self.inner,
@@ -163,8 +163,8 @@ impl Triangulation {
         self.inner = geo::Polygon::new(
             exterior,
             interiors
-                .into_iter()
-                .chain(obstacles.into_iter().map(|edges| {
+                .into_par_iter()
+                .chain(obstacles.into_par_iter().map(|edges| {
                     LineString::from_iter(edges.into_iter().map(|v| Coord::from((v.x, v.y))))
                 }))
                 .collect::<Vec<_>>(),
@@ -610,8 +610,8 @@ mod tests {
 
 mod inflate {
 
-    use std::f32::consts::TAU;
     use rayon::prelude::*;
+    use std::f32::consts::TAU;
 
     use geo::{
         BooleanOps, Coord, Distance, Euclidean, Line, LineString, Polygon, SimplifyVwPreserve,
