@@ -238,7 +238,7 @@ impl Layer {
     pub fn get_vertices_on_segment(&self, start: Vec2, end: Vec2) -> Vec<usize> {
         let mut vertices = self
             .vertices
-            .iter()
+            .par_iter()
             .enumerate()
             .filter_map(|(idx, v)| {
                 if v.coords.on_segment((start, end)) {

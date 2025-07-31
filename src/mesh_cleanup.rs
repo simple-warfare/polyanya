@@ -1,9 +1,10 @@
 use glam::Vec2;
+use rayon::iter::IntoParallelRefMutIterator;
 #[cfg(feature = "tracing")]
 use tracing::instrument;
 
 use crate::{instance::U32Layer, Layer, Mesh};
-
+use rayon::prelude::*;
 impl Mesh {
     /// Reorder all the neighboring polygons of all the vertices so that they are CCW ordered, and correctly mark corners.
     pub fn reorder_neighbors_ccw_and_fix_corners(&mut self) {
@@ -121,7 +122,7 @@ impl Mesh {
     pub fn remove_useless_vertices(&mut self) -> bool {
         !self
             .layers
-            .iter_mut()
+            .par_iter_mut()
             .map(|layer| layer.remove_useless_vertices())
             .all(|m| !m)
     }
@@ -134,6 +135,7 @@ impl Layer {
         let mut removed = false;
         let mut new_indexes = vec![u32::MAX; self.vertices.len()];
         let mut kept = 0;
+
         for (i, vertex) in self.vertices.iter().enumerate() {
             if vertex.polygons.is_empty() || vertex.polygons == [u32::MAX] {
                 removed = true;
@@ -142,14 +144,16 @@ impl Layer {
                 kept += 1;
             }
         }
-        for polygon in self.polygons.iter_mut() {
-            for vertex in polygon.vertices.iter_mut() {
+
+        self.polygons.par_iter_mut().for_each(|polygon| {
+            polygon.vertices.par_iter_mut().for_each(|vertex| {
                 *vertex = new_indexes[*vertex as usize];
-            }
-        }
+            });
+        });
+
         self.vertices = self
             .vertices
-            .iter()
+            .par_iter()
             .enumerate()
             .filter_map(|(i, _)| {
                 if new_indexes[i] != u32::MAX {

@@ -13,7 +13,7 @@ impl Mesh {
     pub fn merge_polygons(&mut self) -> bool {
         !self
             .layers
-            .iter_mut()
+            .par_iter_mut()
             .map(|layer| layer.merge_polygons())
             .all(|m| !m)
     }
@@ -127,7 +127,7 @@ impl Layer {
         }
         self.polygons.resize_with(kept as usize, || unreachable!());
 
-        self.vertices.par_iter_mut().for_each(|vertex|{
+        self.vertices.par_iter_mut().for_each(|vertex| {
             vertex.polygons.par_iter_mut().for_each(|p| {
                 if *p != u32::MAX {
                     *p = new_indexes[*p as usize];
